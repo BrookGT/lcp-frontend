@@ -13,15 +13,14 @@ export default function SignInPage() {
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        const params: Record<string, string> = {
-            redirect: "true",
+        const res = await signIn("credentials", {
+            redirect: true,
             callbackUrl: "/communication",
+            email,
             password,
             mode,
-            email,
-        };
-        if (mode === "signup") params.username = username;
-        const res = await signIn("credentials", params);
+            username: mode === "signup" ? username : undefined,
+        });
         if (res?.error) setError(res.error);
     };
 

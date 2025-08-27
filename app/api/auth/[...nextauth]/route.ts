@@ -27,12 +27,44 @@ export const authOptions: NextAuthOptions = {
                 const payload = isSignup
                     ? { username, email, password }
                     : { email, password };
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-                if (!res.ok) return null;
+                let res: Response;
+                try {
+                    res = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                } catch (e) {
+                    const msg =
+                        process.env.NODE_ENV === "development"
+                            ? `Network error contacting backend: ${
+                                  (e as Error).message
+                              }`
+                            : "Network error";
+                    throw new Error(msg);
+                }
+                if (!res.ok) {
+                    let message = isSignup
+                        ? "Sign up failed"
+                        : "Invalid email or password";
+                    try {
+                        const err = await res.json();
+                        if (typeof err?.message === "string")
+                            message = err.message;
+                        else if (Array.isArray(err?.message) && err.message[0])
+                            message = err.message[0];
+                        else if (err?.error) message = String(err.error);
+                    } catch {}
+                    if (process.env.NODE_ENV === "development") {
+                        // eslint-disable-next-line no-console
+                        console.error(
+                            "Auth backend error",
+                            res.status,
+                            message
+                        );
+                    }
+                    throw new Error(message);
+                }
                 const data: {
                     access_token?: string;
                     user?: { id: string; username: string; email: string };

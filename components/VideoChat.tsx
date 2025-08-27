@@ -7,7 +7,18 @@ const ICE_CONFIG: RTCConfiguration = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-export default function VideoChat({ selfName }: { selfName: string }) {
+export default function VideoChat({
+    selfName,
+    externalRoom,
+    autoJoin,
+    onLeave,
+}: {
+    selfName: string;
+    externalRoom?: string | null;
+    /** change this value (e.g. timestamp) to force auto-join re-attempt */
+    autoJoin?: unknown;
+    onLeave?: () => void;
+}) {
     const [room, setRoom] = useState("room-1");
     const [joined, setJoined] = useState(false);
     const [micOn, setMicOn] = useState(true);
@@ -16,6 +27,17 @@ export default function VideoChat({ selfName }: { selfName: string }) {
     const [remoteStatus, setRemoteStatus] = useState<
         "idle" | "connecting" | "connected" | "left"
     >("idle");
+    const [chatOpen, setChatOpen] = useState(false);
+    interface ChatMessage {
+        id: string;
+        roomId: string;
+        text: string;
+        fromUserId: string;
+        fromName: string;
+        ts: number;
+    }
+    const [chatInput, setChatInput] = useState("");
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -99,6 +121,9 @@ export default function VideoChat({ selfName }: { selfName: string }) {
         socket.on("name", (n: string) => {
             if (n && typeof n === "string") setPeerName(n);
         });
+        socket.on("chat:message", (m: ChatMessage) => {
+            setMessages((prev) => [...prev.slice(-199), m]);
+        });
 
         return () => {
             socket.off("join", handleJoin);
@@ -109,6 +134,7 @@ export default function VideoChat({ selfName }: { selfName: string }) {
             socket.off("roomClosed");
             socket.off("peerDisconnected", handlePeerDisconnected);
             socket.off("name");
+            socket.off("chat:message");
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [socket, selfName]);
@@ -184,6 +210,16 @@ export default function VideoChat({ selfName }: { selfName: string }) {
         setJoined(false);
         socket.emit("leave");
         cleanupPeer();
+        onLeave?.();
+    }
+
+    function sendChat() {
+        if (!chatInput.trim()) return;
+        socket.emit("chat:message", {
+            text: chatInput.trim(),
+            fromName: selfName,
+        });
+        setChatInput("");
     }
 
     // Ensure room slot is freed even if tab closes/navigates
@@ -217,6 +253,18 @@ export default function VideoChat({ selfName }: { selfName: string }) {
             return next;
         });
     }
+
+    // Auto join when externalRoom provided
+    useEffect(() => {
+        if (externalRoom && !joined) {
+            setRoom(externalRoom);
+            // slight delay to ensure state updates
+            setTimeout(() => {
+                if (!joined) handleJoinRoom();
+            }, 50);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [externalRoom, autoJoin]);
 
     return (
         <div className="w-full">
@@ -382,6 +430,25 @@ export default function VideoChat({ selfName }: { selfName: string }) {
                                     <path d="M6.62 10.79a15.05 15.05 0 0 1 10.59 0l1.06.44a2 2 0 0 1 1.2 2.58l-.66 1.66a2 2 0 0 1-2.39 1.2l-2.04-.58a2 2 0 0 1-1.38-1.26l-.19-.57a11.05 11.05 0 0 0-2.03 0l-.19.57a2 2 0 0 1-1.38 1.26l-2.04.58a2 2 0 0 1-2.39-1.2l-.66-1.66a2 2 0 0 1 1.2-2.58l1.06-.44Z" />
                                 </svg>
                             </button>
+
+                            <button
+                                onClick={() => setChatOpen((p) => !p)}
+                                title="Toggle chat"
+                                aria-label="Toggle chat"
+                                className={`size-12 rounded-full grid place-items-center shadow-md transition ring-1 bg-white text-black ring-black/10 hover:bg-white ${
+                                    chatOpen ? "outline outline-teal-400" : ""
+                                }`}
+                            >
+                                {/* Chat icon */}
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    className="size-6"
+                                >
+                                    <path d="M4 4h16v12H7.17L4 19.17V4Zm2 2v8.83L7.83 13H18V6H6Zm3 3h2v2H9V9Zm6 0h-4v2h4V9Z" />
+                                </svg>
+                            </button>
                         </div>
 
                         {/* Room label */}
@@ -389,6 +456,74 @@ export default function VideoChat({ selfName }: { selfName: string }) {
                             Room: {room}
                         </div>
                     </div>
+                    {chatOpen && (
+                        <div className="absolute top-4 right-4 w-72 h-[60%] flex flex-col bg-black/70 backdrop-blur-xl rounded-xl border border-white/15 shadow-2xl overflow-hidden">
+                            <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between">
+                                <span className="text-sm font-medium text-white/80">
+                                    Chat
+                                </span>
+                                <button
+                                    onClick={() => setChatOpen(false)}
+                                    className="text-white/50 hover:text-white text-xs"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+                                {messages.length === 0 && (
+                                    <div className="text-white/40 text-xs">
+                                        No messages yet
+                                    </div>
+                                )}
+                                {messages.map((m) => (
+                                    <div
+                                        key={m.id}
+                                        className="flex flex-col gap-0.5"
+                                    >
+                                        <div className="text-[11px] uppercase tracking-wide text-white/40">
+                                            {m.fromName}{" "}
+                                            <span className="text-white/30">
+                                                •{" "}
+                                                {new Date(
+                                                    m.ts
+                                                ).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="text-white/90 leading-snug break-words">
+                                            {m.text}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div id="chat-bottom" />
+                            </div>
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    sendChat();
+                                }}
+                                className="p-2 border-t border-white/10 flex items-center gap-2 bg-black/40"
+                            >
+                                <input
+                                    value={chatInput}
+                                    onChange={(e) =>
+                                        setChatInput(e.target.value)
+                                    }
+                                    placeholder="Type a message"
+                                    className="flex-1 bg-white/10 focus:bg-white/15 text-white placeholder-white/40 px-3 py-2 rounded-md text-xs outline-none focus:ring-2 focus:ring-teal-400/60"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!chatInput.trim()}
+                                    className="px-3 py-2 rounded-md bg-teal-500 disabled:opacity-40 hover:bg-teal-400 text-white text-xs font-medium shadow"
+                                >
+                                    Send
+                                </button>
+                            </form>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

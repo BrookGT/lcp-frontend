@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* Neutral, softer base colors (avoid stark pure white) */
 :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    --background: #f3f5f7; /* light slate tint */
+    --foreground: #1c1f23;
+    --overlay-dark: 15 23 42; /* tailwind slate-900ish */
+    --glass-border: 255 255 255;
 }
 
 @theme inline {
@@ -18,18 +21,156 @@
 }
 
 body {
-    background: var(--background);
+    background: radial-gradient(
+            circle at 30% 20%,
+            rgba(var(--overlay-dark) / 4%),
+            rgba(var(--overlay-dark) / 2%)
+        ),
+        var(--background);
     color: var(--foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
         Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    -webkit-font-smoothing: antialiased;
 }
 
+/* Dimmed hero background with chroma retained but more professional subdued feel */
 .lcp-bg {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background-image: url("/assets/lcp background.png");
+    /* Reduced opacity to let the underlying image read more clearly */
+    background: linear-gradient(
+            145deg,
+            rgba(var(--overlay-dark) / 0.45) 0%,
+            rgba(var(--overlay-dark) / 0.52) 35%,
+            rgba(var(--overlay-dark) / 0.58) 70%
+        ),
+        url("/assets/lcp background.png");
     background-size: cover;
     background-position: center;
-    filter: brightness(0.8);
+    background-attachment: fixed;
+    image-rendering: -webkit-optimize-contrast;
+}
+
+/* Even lighter variant if needed (apply alongside lcp-bg: <div class="lcp-bg lcp-bg--light" />) */
+.lcp-bg.lcp-bg--light {
+    background: linear-gradient(
+            145deg,
+            rgba(var(--overlay-dark) / 0.32) 0%,
+            rgba(var(--overlay-dark) / 0.38) 35%,
+            rgba(var(--overlay-dark) / 0.44) 70%
+        ),
+        url("/assets/lcp background.png");
+}
+
+/* Refined glass surface: less white, more neutral depth */
+.glass-card {
+    background: linear-gradient(
+            140deg,
+            rgba(255 255 255 / 0.14),
+            rgba(255 255 255 / 0.04)
+        )
+        border-box;
+    backdrop-filter: blur(18px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+    border: 1px solid rgba(var(--glass-border) / 0.08);
+    box-shadow: 0 4px 12px -2px rgba(0 0 0 / 0.45),
+        0 12px 32px -6px rgba(0 0 0 / 0.35);
+    border-radius: 18px;
+    transition: background 220ms ease, box-shadow 220ms ease,
+        border-color 220ms ease;
+}
+
+.glass-card:hover {
+    background: linear-gradient(
+        140deg,
+        rgba(255 255 255 / 0.18),
+        rgba(255 255 255 / 0.06)
+    );
+    border-color: rgba(var(--glass-border) / 0.12);
+    box-shadow: 0 6px 16px -2px rgba(0 0 0 / 0.5),
+        0 18px 40px -10px rgba(0 0 0 / 0.38);
+}
+
+/* Sub-surface (e.g., side panels) */
+.glass-subtle {
+    background: linear-gradient(
+        160deg,
+        rgba(255 255 255 / 0.09),
+        rgba(255 255 255 / 0.03)
+    );
+    border: 1px solid rgba(var(--glass-border) / 0.06);
+    backdrop-filter: blur(14px) saturate(125%);
+    -webkit-backdrop-filter: blur(14px) saturate(125%);
+}
+
+@media (prefers-color-scheme: dark) {
+    .glass-card {
+        background: linear-gradient(
+            150deg,
+            rgba(255 255 255 / 0.09),
+            rgba(255 255 255 / 0.025)
+        );
+        border-color: rgba(var(--glass-border) / 0.065);
+        box-shadow: 0 4px 10px -2px rgba(0 0 0 / 0.65),
+            0 10px 30px -4px rgba(0 0 0 / 0.55);
+    }
+    .glass-card:hover {
+        background: linear-gradient(
+            150deg,
+            rgba(255 255 255 / 0.12),
+            rgba(255 255 255 / 0.05)
+        );
+        border-color: rgba(var(--glass-border) / 0.1);
+    }
+    .glass-subtle {
+        background: linear-gradient(
+            160deg,
+            rgba(255 255 255 / 0.06),
+            rgba(255 255 255 / 0.02)
+        );
+        border-color: rgba(var(--glass-border) / 0.05);
+    }
+}
+
+.glow-btn {
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.glow-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 150, 136, 0.35);
+}
+
+.floating-label {
+    position: relative;
+}
+.floating-label input {
+    padding-top: 1.25rem;
+}
+.floating-label label {
+    pointer-events: none;
+    position: absolute;
+    left: 0.75rem;
+    top: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.25px;
+    transition: all 150ms ease;
+}
+.floating-label input:focus + label,
+.floating-label input:not(:placeholder-shown) + label {
+    top: 0.3rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* Utility: subtle divider */
+.divider-line {
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255 255 255 / 0.12),
+        transparent
+    );
 }

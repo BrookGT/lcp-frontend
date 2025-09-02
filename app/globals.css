@@ -33,6 +33,71 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Simple fade-in for overlays */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+.animate-fade-in {
+    animation: fade-in 0.18s ease-out;
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(12%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+.animate-slide-up {
+    animation: slide-up 0.22s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.sheet-shadow {
+    box-shadow: 0 -8px 28px -4px rgba(0, 0, 0, 0.55),
+        0 -2px 8px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* Improve scrollbars (webkit) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255 255 255 / 0.18);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255 255 255 / 0.28);
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .animate-fade-in {
+        animation: none;
+    }
+    .glow-btn {
+        transition: none;
+    }
+}
+
+/* Mobile safe area paddings for iOS notch */
+body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
 /* Dimmed hero background with chroma retained but more professional subdued feel */
 .lcp-bg {
     position: fixed;

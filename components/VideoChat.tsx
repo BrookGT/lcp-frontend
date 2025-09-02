@@ -42,6 +42,26 @@ export default function VideoChat({
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 767px)");
+        const update = () => setIsMobile(mq.matches);
+        update();
+        try {
+            mq.addEventListener("change", update);
+        } catch {
+            // Safari fallback
+            mq.addListener(update);
+        }
+        return () => {
+            try {
+                mq.removeEventListener("change", update);
+            } catch {
+                mq.removeListener(update);
+            }
+        };
+    }, []);
 
     const socket = useMemo(() => getSocket(), []);
 
@@ -267,7 +287,7 @@ export default function VideoChat({
     }, [externalRoom, autoJoin]);
 
     return (
-        <div className="w-full">
+        <div className="w-full min-h-0 flex flex-col">
             {!joined ? (
                 <div className="max-w-xl mx-auto bg-white/70 dark:bg-black/40 backdrop-blur rounded-xl p-4 shadow-lg flex flex-col gap-3">
                     <h2 className="text-lg font-semibold">Join a room</h2>
@@ -287,7 +307,7 @@ export default function VideoChat({
                     </div>
                 </div>
             ) : (
-                <div className="relative mx-auto max-w-6xl aspect-video rounded-3xl overflow-hidden shadow-2xl">
+                <div className="relative mx-auto w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl sm:aspect-video min-h-[55vh] sm:min-h-[260px]">
                     {/* Liquid glass gradient border */}
                     <div className="absolute inset-0 rounded-3xl p-[2px] bg-gradient-to-br from-white/50 via-white/20 to-white/5 pointer-events-none" />
                     <div className="absolute inset-[2px] rounded-3xl border border-white/15 bg-black/70 backdrop-blur-xl overflow-hidden">
@@ -319,7 +339,7 @@ export default function VideoChat({
                         )}
 
                         {/* Local self-view as PiP bottom-right */}
-                        <div className="absolute bottom-4 right-4 w-40 h-28 md:w-56 md:h-36 rounded-xl overflow-hidden shadow-xl border border-white/20 bg-black/60">
+                        <div className="absolute bottom-3 right-3 w-32 h-20 xs:w-36 xs:h-24 sm:bottom-4 sm:right-4 sm:w-40 sm:h-28 md:w-56 md:h-36 rounded-xl overflow-hidden shadow-xl border border-white/20 bg-black/60">
                             <video
                                 ref={localVideoRef}
                                 className="w-full h-full object-cover"
@@ -339,7 +359,7 @@ export default function VideoChat({
                         </div>
 
                         {/* Controls bar */}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex items-center gap-3 bg-white/10 backdrop-blur-xl saturate-150 px-3 py-2 rounded-full border border-white/20 shadow-xl">
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-2 sm:bottom-4 flex items-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-xl saturate-150 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-white/20 shadow-xl">
                             <button
                                 onClick={toggleMic}
                                 title={micOn ? "Mute" : "Unmute"}
@@ -348,7 +368,7 @@ export default function VideoChat({
                                         ? "Mute microphone"
                                         : "Unmute microphone"
                                 }
-                                className={`size-12 rounded-full grid place-items-center shadow-md transition ring-1 ${
+                                className={`size-10 sm:size-12 rounded-full grid place-items-center shadow-md transition ring-1 ${
                                     micOn
                                         ? "bg-white text-black ring-black/10 hover:bg-white"
                                         : "bg-red-600 text-white ring-red-700/50 hover:bg-red-500"
@@ -385,7 +405,7 @@ export default function VideoChat({
                                 aria-label={
                                     camOn ? "Turn camera off" : "Turn camera on"
                                 }
-                                className={`size-12 rounded-full grid place-items-center shadow-md transition ring-1 ${
+                                className={`size-10 sm:size-12 rounded-full grid place-items-center shadow-md transition ring-1 ${
                                     camOn
                                         ? "bg-white text-black ring-black/10 hover:bg-white"
                                         : "bg-red-600 text-white ring-red-700/50 hover:bg-red-500"
@@ -418,7 +438,7 @@ export default function VideoChat({
                                 onClick={handleLeave}
                                 title="Leave"
                                 aria-label="Leave call"
-                                className="size-12 rounded-full grid place-items-center bg-red-600 hover:bg-red-500 text-white shadow-md ring-1 ring-red-700/50"
+                                className="size-10 sm:size-12 rounded-full grid place-items-center bg-red-600 hover:bg-red-500 text-white shadow-md ring-1 ring-red-700/50"
                             >
                                 {/* Phone hang-up icon */}
                                 <svg
@@ -435,7 +455,7 @@ export default function VideoChat({
                                 onClick={() => setChatOpen((p) => !p)}
                                 title="Toggle chat"
                                 aria-label="Toggle chat"
-                                className={`size-12 rounded-full grid place-items-center shadow-md transition ring-1 bg-white text-black ring-black/10 hover:bg-white ${
+                                className={`size-10 sm:size-12 rounded-full grid place-items-center shadow-md transition ring-1 bg-white text-black ring-black/10 hover:bg-white ${
                                     chatOpen ? "outline outline-teal-400" : ""
                                 }`}
                             >
@@ -456,7 +476,7 @@ export default function VideoChat({
                             Room: {room}
                         </div>
                     </div>
-                    {chatOpen && (
+                    {chatOpen && !isMobile && (
                         <div className="absolute top-4 right-4 w-72 h-[60%] flex flex-col bg-black/70 backdrop-blur-xl rounded-xl border border-white/15 shadow-2xl overflow-hidden">
                             <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between">
                                 <span className="text-sm font-medium text-white/80">
@@ -518,6 +538,75 @@ export default function VideoChat({
                                     type="submit"
                                     disabled={!chatInput.trim()}
                                     className="px-3 py-2 rounded-md bg-teal-500 disabled:opacity-40 hover:bg-teal-400 text-white text-xs font-medium shadow"
+                                >
+                                    Send
+                                </button>
+                            </form>
+                        </div>
+                    )}
+                    {chatOpen && isMobile && (
+                        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-md sheet-shadow animate-slide-up">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                                <h3 className="text-base font-medium text-white">
+                                    Chat
+                                </h3>
+                                <button
+                                    onClick={() => setChatOpen(false)}
+                                    aria-label="Close chat"
+                                    className="text-white/60 hover:text-white text-lg leading-none"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+                                {messages.length === 0 && (
+                                    <div className="text-white/40 text-xs text-center pt-4">
+                                        No messages yet
+                                    </div>
+                                )}
+                                {messages.map((m) => (
+                                    <div
+                                        key={m.id}
+                                        className="flex flex-col gap-0.5"
+                                    >
+                                        <div className="text-[11px] font-semibold tracking-wide text-white/50">
+                                            {m.fromName}{" "}
+                                            <span className="text-white/30 font-normal">
+                                                •{" "}
+                                                {new Date(
+                                                    m.ts
+                                                ).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="text-white/90 leading-snug break-words whitespace-pre-wrap">
+                                            {m.text}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div id="chat-bottom" />
+                            </div>
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    sendChat();
+                                }}
+                                className="p-3 border-t border-white/10 flex items-center gap-2 bg-black/60"
+                            >
+                                <input
+                                    value={chatInput}
+                                    onChange={(e) =>
+                                        setChatInput(e.target.value)
+                                    }
+                                    placeholder="Message"
+                                    className="flex-1 bg-white/10 focus:bg-white/15 text-white placeholder-white/40 px-4 py-3 rounded-full text-sm outline-none focus:ring-2 focus:ring-teal-400/60"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!chatInput.trim()}
+                                    className="px-5 py-3 rounded-full bg-teal-500 disabled:opacity-40 hover:bg-teal-400 text-white text-sm font-medium shadow"
                                 >
                                     Send
                                 </button>

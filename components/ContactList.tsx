@@ -12,15 +12,39 @@ export default function ContactList({
     contacts,
     onSelect,
     onCall,
+    variant = "default",
+    onClose,
 }: {
     contacts: Contact[];
     onSelect?: (id: string) => void;
     onCall?: (id: string) => void;
+    variant?: "default" | "mobileOverlay";
+    onClose?: () => void;
 }) {
+    const base = "flex flex-col p-4 gap-2 glass-card h-full overflow-hidden";
+    const containerClasses =
+        variant === "mobileOverlay"
+            ? "fixed inset-0 z-50 bg-black/70 backdrop-blur-md p-4 animate-fade-in"
+            : "w-72 min-w-60 max-w-xs";
     return (
-        <aside className="w-72 min-w-60 max-w-xs h-full flex flex-col glass-card p-4 gap-2">
-            <h2 className="text-lg font-semibold mb-2">Contacts</h2>
-            <div className="flex-1 overflow-y-auto">
+        <aside
+            className={`${containerClasses} ${base}`}
+            aria-label="Contact list"
+            role="navigation"
+        >
+            <div className="flex items-center justify-between mb-1">
+                <h2 className="text-lg font-semibold">Contacts</h2>
+                {variant === "mobileOverlay" && (
+                    <button
+                        aria-label="Close contacts"
+                        className="md:hidden text-white/70 hover:text-white text-xl leading-none"
+                        onClick={onClose}
+                    >
+                        ×
+                    </button>
+                )}
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain pr-1 -mr-1">
                 {contacts.length === 0 ? (
                     <div className="text-white/60 text-sm">No contacts yet</div>
                 ) : (
@@ -40,7 +64,7 @@ export default function ContactList({
                                     onClick={() => onSelect?.(c.id)}
                                 >
                                     <div
-                                        className={`size-4 rounded-full ${
+                                        className={`size-4 shrink-0 rounded-full ${
                                             c.status === "ONLINE"
                                                 ? "bg-teal-400"
                                                 : c.status === "BUSY"
@@ -57,7 +81,7 @@ export default function ContactList({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-white/50">
+                                        <span className="hidden sm:inline text-xs text-white/50">
                                             {c.status}
                                         </span>
                                         <button
@@ -78,7 +102,6 @@ export default function ContactList({
                                                     : "bg-white/10 text-white/40 cursor-not-allowed"
                                             }`}
                                         >
-                                            {/* Phone icon */}
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 viewBox="0 0 24 24"

@@ -23,6 +23,7 @@ export default function CommunicationPage() {
         roomId: string;
     } | null>(null);
     const [activeRoom, setActiveRoom] = useState<string | null>(null);
+    const [showContactsMobile, setShowContactsMobile] = useState(false);
     const [autoJoinTick, setAutoJoinTick] = useState<number>(0);
     // For future auto-join functionality we could track a target room
     // const [pendingRoom, setPendingRoom] = useState<string | null>(null);
@@ -153,10 +154,10 @@ export default function CommunicationPage() {
     const handleProfileClose = useCallback(() => setShowProfile(false), []);
 
     return (
-        <main className="h-dvh w-full relative flex items-center justify-center p-4 md:p-6">
+        <main className="h-dvh w-full relative flex items-center justify-center p-2 sm:p-4 md:p-6">
             <div className="lcp-bg" />
-            <div className="w-full max-w-6xl mx-auto flex flex-row gap-6 h-[80vh]">
-                <div className="flex-1 flex flex-col gap-4">
+            <div className="w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6 h-[88vh] md:h-[80vh]">
+                <div className="flex-1 flex flex-col gap-4 min-h-0">
                     <header className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 px-5 py-4 shadow-lg flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-semibold text-white drop-shadow">
@@ -168,12 +169,21 @@ export default function CommunicationPage() {
                                     : "Create a room and start a 1:1 call."}
                             </p>
                         </div>
-                        <button
-                            className="rounded-full bg-white/20 hover:bg-white/30 px-4 py-2 text-white font-medium shadow"
-                            onClick={handleProfileClick}
-                        >
-                            Profile
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                className="md:hidden rounded-full bg-white/20 hover:bg-white/30 px-4 py-2 text-white font-medium shadow"
+                                onClick={() => setShowContactsMobile(true)}
+                                aria-label="Open contacts"
+                            >
+                                Contacts
+                            </button>
+                            <button
+                                className="rounded-full bg-white/20 hover:bg-white/30 px-4 py-2 text-white font-medium shadow"
+                                onClick={handleProfileClick}
+                            >
+                                Profile
+                            </button>
+                        </div>
                     </header>
                     <VideoChat
                         selfName={displayName}
@@ -192,10 +202,25 @@ export default function CommunicationPage() {
                         }}
                     />
                 </div>
+                {/* Desktop / tablet contact list */}
                 {!activeRoom && (
-                    <ContactList contacts={contacts} onCall={startCall} />
+                    <div className="hidden md:block shrink-0 h-full">
+                        <ContactList contacts={contacts} onCall={startCall} />
+                    </div>
                 )}
             </div>
+            {/* Mobile overlay contact list */}
+            {showContactsMobile && !activeRoom && (
+                <ContactList
+                    contacts={contacts}
+                    onCall={(id) => {
+                        startCall(id);
+                        setShowContactsMobile(false);
+                    }}
+                    variant="mobileOverlay"
+                    onClose={() => setShowContactsMobile(false)}
+                />
+            )}
             {incomingCall && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="glass-card p-6 rounded-2xl w-full max-w-sm text-white flex flex-col gap-4">

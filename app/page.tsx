@@ -7,33 +7,33 @@ export default function Home() {
     const authed = Boolean(session?.accessToken);
 
     return (
-        <main className="h-dvh w-full relative flex items-center justify-center p-4 md:p-6">
-            <div className="lcp-bg" />
-            <div className="w-full max-w-3xl mx-auto flex flex-col gap-6 text-white">
-                <header className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 px-6 py-6 shadow-lg">
-                    <h1 className="text-3xl md:text-4xl font-semibold drop-shadow">
+        <main className="min-h-dvh w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-0">
+            <div className="w-full max-w-lg mx-auto flex flex-col gap-6 px-2 sm:px-4 py-8">
+                <header className="rounded-2xl glass-card px-5 py-6 shadow-lg animate-fade-in">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
                         Live Communication Platform
                     </h1>
-                    <p className="text-white/80 mt-2">
-                        Modern 1:1 video calls with glassy UI.
+                    <p className="text-slate-700 dark:text-white/80 text-base sm:text-lg">
+                        Modern 1:1 video calls with a beautiful, secure UI.
                     </p>
                 </header>
-                <div className="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-lg">
-                    <p className="mb-4">
-                        Welcome! Create a room and start communicating
-                        instantly.
-                    </p>
-                    <div className="flex gap-3 flex-wrap">
+                <div className="rounded-2xl glass-card p-5 shadow-lg animate-fade-in flex flex-col gap-6">
+                    <div className="mb-2">
+                        <p className="text-slate-800 dark:text-white/90 text-base sm:text-lg font-medium">
+                            Welcome! Sign in to start communicating instantly.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full">
                         {authed ? (
                             <>
                                 <Link
                                     href="/communication"
-                                    className="rounded-md bg-blue-600 hover:bg-blue-500 px-4 py-2"
+                                    className="w-full sm:w-auto rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-semibold px-5 py-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 >
                                     Go to Communication
                                 </Link>
                                 <button
-                                    className="rounded-md bg-white/20 hover:bg-white/30 px-4 py-2"
+                                    className="w-full sm:w-auto rounded-xl bg-white/20 hover:bg-white/30 text-slate-900 dark:text-white text-base font-semibold px-5 py-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     onClick={() =>
                                         signOut({ callbackUrl: "/" })
                                     }
@@ -45,13 +45,13 @@ export default function Home() {
                             <>
                                 <Link
                                     href="/auth/signin"
-                                    className="rounded-md bg-blue-600 hover:bg-blue-500 px-4 py-2"
+                                    className="w-full sm:w-auto rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-semibold px-5 py-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 >
                                     Sign in
                                 </Link>
                                 <Link
                                     href="/auth/signin"
-                                    className="rounded-md bg-white/20 hover:bg-white/30 px-4 py-2"
+                                    className="w-full sm:w-auto rounded-xl bg-white/20 hover:bg-white/30 text-slate-900 dark:text-white text-base font-semibold px-5 py-3 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 >
                                     Sign up
                                 </Link>
@@ -59,16 +59,18 @@ export default function Home() {
                         )}
                     </div>
                     {authed && (
-                        <div className="mt-6 rounded-xl bg-black/40 border border-white/10 p-4">
-                            <h2 className="font-semibold text-white mb-2">
+                        <div className="mt-4 rounded-xl glass-subtle border border-white/10 p-4 flex flex-col gap-2 animate-fade-in">
+                            <h2 className="font-semibold text-slate-900 dark:text-white mb-2 text-lg">
                                 Profile
                             </h2>
-                            <p className="text-white/80 text-sm">
-                                Username: {session?.user?.name ?? "-"}
-                            </p>
-                            <p className="text-white/80 text-sm">
-                                Email: {session?.user?.email ?? "-"}
-                            </p>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-slate-700 dark:text-white/80 text-sm">
+                                    Username: {session?.user?.name ?? "-"}
+                                </span>
+                                <span className="text-slate-700 dark:text-white/80 text-sm">
+                                    Email: {session?.user?.email ?? "-"}
+                                </span>
+                            </div>
                         </div>
                     )}
                 </div>

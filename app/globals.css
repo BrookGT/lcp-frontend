@@ -23,8 +23,8 @@
 body {
     background: radial-gradient(
             circle at 30% 20%,
-            rgba(var(--overlay-dark) / 4%),
-            rgba(var(--overlay-dark) / 2%)
+            /* rgba(var(--overlay-dark) / 4%),
+            rgba(var(--overlay-dark) / 2%) */
         ),
         var(--background);
     color: var(--foreground);

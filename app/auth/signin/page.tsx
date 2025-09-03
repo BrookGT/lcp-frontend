@@ -1,6 +1,7 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignInPage() {
@@ -9,19 +10,51 @@ export default function SignInPage() {
     const [password, setPassword] = useState("");
     const [mode, setMode] = useState<"signin" | "signup">("signin");
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         setError(null);
-        const res = await signIn("credentials", {
-            redirect: true,
-            callbackUrl: "/communication",
-            email,
-            password,
-            mode,
-            username: mode === "signup" ? username : undefined,
-        });
-        if (res?.error) setError(res.error);
+        // Basic client validation
+        if (!email.trim() || !password.trim()) {
+            setError("Email & password required");
+            return;
+        }
+        if (mode === "signup") {
+            if (!username.trim()) {
+                setError("Username required");
+                return;
+            }
+            if (username.trim().length < 3) {
+                setError("Username must be at least 3 chars");
+                return;
+            }
+            if (password.length < 6) {
+                setError("Password must be at least 6 chars");
+                return;
+            }
+        }
+        setLoading(true);
+        try {
+            const res = await signIn("credentials", {
+                redirect: false, // manual navigation so we can show errors correctly
+                email: email.trim().toLowerCase(),
+                password,
+                mode,
+                username: mode === "signup" ? username.trim() : undefined,
+            });
+            if (res?.error) {
+                setError(res.error);
+            } else {
+                router.push("/communication");
+            }
+        } catch (err) {
+            setError((err as Error).message || "Authentication failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -77,9 +110,19 @@ export default function SignInPage() {
                     )}
                     <button
                         type="submit"
-                        className="w-full rounded-xl bg-teal-500 hover:bg-teal-400 py-3 font-medium glow-btn"
+                        disabled={loading}
+                        className="w-full rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed py-3 font-medium glow-btn flex items-center justify-center gap-2"
                     >
-                        {mode === "signin" ? "Sign in" : "Create account"}
+                        {loading && (
+                            <span className="inline-block size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        )}
+                        {mode === "signin"
+                            ? loading
+                                ? "Signing in"
+                                : "Sign in"
+                            : loading
+                            ? "Creating"
+                            : "Create account"}
                     </button>
                 </form>
                 <div className="mt-5 text-sm text-white/80">

@@ -2,9 +2,13 @@
 
 /* Neutral, softer base colors (avoid stark pure white) */
 :root {
-    --background: #f3f5f7; /* light slate tint */
-    --foreground: #1c1f23;
-    --overlay-dark: 15 23 42; /* tailwind slate-900ish */
+    --background: #faf9fc; /* very light lavender base */
+    --foreground: #16141f;
+    --overlay-dark: 36 20 60; /* deep purple tone for image overlay */
+    --gradient-start: 255 99 235; /* pink-ish */
+    --gradient-mid: 139 92 246; /* violet */
+    --gradient-end: 59 130 246; /* blue accent */
+    --gradient-alt: 110 231 183; /* teal for accent lines */
     --glass-border: 255 255 255;
 }
 
@@ -22,11 +26,18 @@
 
 body {
     background: radial-gradient(
-            circle at 30% 20%,
-            /* rgba(var(--overlay-dark) / 4%),
-            rgba(var(--overlay-dark) / 2%) */
+            circle at 25% 20%,
+            rgba(var(--gradient-start) / 0.35),
+            transparent 60%
         ),
-        var(--background);
+        linear-gradient(
+            135deg,
+            rgba(var(--gradient-start) / 0.55) 0%,
+            rgba(var(--gradient-mid) / 0.5) 40%,
+            rgba(var(--gradient-end) / 0.55) 72%,
+            rgba(var(--gradient-alt) / 0.4) 100%
+        );
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
         Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -96,19 +107,21 @@ body {
 body {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Dimmed hero background with chroma retained but more professional subdued feel */
-.lcp-bg {
+/* Image background only when body has .meeting-bg (set on communication page) */
+body.meeting-bg .lcp-bg {
     position: fixed;
     inset: 0;
     z-index: -1;
-    /* Reduced opacity to let the underlying image read more clearly */
     background: linear-gradient(
             145deg,
-            rgba(var(--overlay-dark) / 0.45) 0%,
-            rgba(var(--overlay-dark) / 0.52) 35%,
-            rgba(var(--overlay-dark) / 0.58) 70%
+            rgba(var(--overlay-dark) / 0.25) 0%,
+            rgba(var(--overlay-dark) / 0.3) 35%,
+            rgba(var(--overlay-dark) / 0.35) 70%
         ),
         url("/assets/lcp background.png");
     background-size: cover;
@@ -129,72 +142,106 @@ body {
 }
 
 /* Refined glass surface: less white, more neutral depth */
+/* Brighter glass for light theme */
 .glass-card {
     background: linear-gradient(
-            140deg,
-            rgba(255 255 255 / 0.14),
-            rgba(255 255 255 / 0.04)
-        )
-        border-box;
-    backdrop-filter: blur(18px) saturate(135%);
-    -webkit-backdrop-filter: blur(18px) saturate(135%);
-    border: 1px solid rgba(var(--glass-border) / 0.08);
-    box-shadow: 0 4px 12px -2px rgba(0 0 0 / 0.45),
-        0 12px 32px -6px rgba(0 0 0 / 0.35);
-    border-radius: 18px;
-    transition: background 220ms ease, box-shadow 220ms ease,
-        border-color 220ms ease;
+            125deg,
+            rgba(255 255 255 / 0.65),
+            rgba(255 255 255 / 0.34)
+        ),
+        radial-gradient(
+            circle at 80% 10%,
+            rgba(var(--gradient-end) / 0.2),
+            transparent 70%
+        );
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255 255 255 / 0.55);
+    box-shadow: 0 2px 6px -1px rgba(20 20 40 / 0.12),
+        0 8px 28px -6px rgba(40 30 70 / 0.15);
+    border-radius: 22px;
+    transition: background 240ms ease, box-shadow 240ms ease,
+        border-color 240ms ease, transform 240ms ease;
 }
 
 .glass-card:hover {
     background: linear-gradient(
-        140deg,
-        rgba(255 255 255 / 0.18),
-        rgba(255 255 255 / 0.06)
-    );
-    border-color: rgba(var(--glass-border) / 0.12);
-    box-shadow: 0 6px 16px -2px rgba(0 0 0 / 0.5),
-        0 18px 40px -10px rgba(0 0 0 / 0.38);
+            125deg,
+            rgba(255 255 255 / 0.75),
+            rgba(255 255 255 / 0.45)
+        ),
+        radial-gradient(
+            circle at 80% 10%,
+            rgba(var(--gradient-end) / 0.24),
+            transparent 70%
+        );
+    border-color: rgba(255 255 255 / 0.65);
+    box-shadow: 0 4px 10px -2px rgba(30 20 60 / 0.25),
+        0 20px 40px -16px rgba(40 30 70 / 0.18);
+    transform: translateY(-2px);
 }
 
 /* Sub-surface (e.g., side panels) */
 .glass-subtle {
     background: linear-gradient(
-        160deg,
-        rgba(255 255 255 / 0.09),
-        rgba(255 255 255 / 0.03)
+        140deg,
+        rgba(255 255 255 / 0.55),
+        rgba(255 255 255 / 0.25)
     );
-    border: 1px solid rgba(var(--glass-border) / 0.06);
-    backdrop-filter: blur(14px) saturate(125%);
-    -webkit-backdrop-filter: blur(14px) saturate(125%);
+    border: 1px solid rgba(255 255 255 / 0.45);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
 
 @media (prefers-color-scheme: dark) {
+    body {
+        background: radial-gradient(
+                circle at 20% 18%,
+                rgba(var(--gradient-mid) / 0.35),
+                transparent 60%
+            ),
+            linear-gradient(
+                120deg,
+                rgba(var(--gradient-mid) / 0.55) 0%,
+                rgba(var(--gradient-end) / 0.55) 55%,
+                rgba(var(--gradient-start) / 0.55) 100%
+            );
+    }
     .glass-card {
         background: linear-gradient(
-            150deg,
-            rgba(255 255 255 / 0.09),
-            rgba(255 255 255 / 0.025)
-        );
-        border-color: rgba(var(--glass-border) / 0.065);
+                140deg,
+                rgba(40 30 65 / 0.75),
+                rgba(35 25 60 / 0.55)
+            ),
+            radial-gradient(
+                circle at 85% 10%,
+                rgba(var(--gradient-end) / 0.25),
+                transparent 70%
+            );
+        border-color: rgba(255 255 255 / 0.08);
         box-shadow: 0 4px 10px -2px rgba(0 0 0 / 0.65),
             0 10px 30px -4px rgba(0 0 0 / 0.55);
     }
     .glass-card:hover {
         background: linear-gradient(
-            150deg,
-            rgba(255 255 255 / 0.12),
-            rgba(255 255 255 / 0.05)
-        );
-        border-color: rgba(var(--glass-border) / 0.1);
+                140deg,
+                rgba(50 40 80 / 0.85),
+                rgba(45 35 75 / 0.65)
+            ),
+            radial-gradient(
+                circle at 85% 10%,
+                rgba(var(--gradient-end) / 0.32),
+                transparent 70%
+            );
+        border-color: rgba(255 255 255 / 0.12);
     }
     .glass-subtle {
         background: linear-gradient(
-            160deg,
-            rgba(255 255 255 / 0.06),
-            rgba(255 255 255 / 0.02)
+            140deg,
+            rgba(45 35 75 / 0.65),
+            rgba(40 30 70 / 0.45)
         );
-        border-color: rgba(var(--glass-border) / 0.05);
+        border-color: rgba(255 255 255 / 0.08);
     }
 }
 
@@ -202,8 +249,9 @@ body {
     transition: transform 150ms ease, box-shadow 150ms ease;
 }
 .glow-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px rgba(0, 150, 136, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -4px rgba(var(--gradient-mid) / 0.45),
+        0 16px 32px -10px rgba(var(--gradient-end) / 0.35);
 }
 
 .floating-label {

@@ -7,13 +7,13 @@ export default function Home() {
     const authed = Boolean(session?.accessToken);
 
     return (
-        <main className="min-h-dvh w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-teal-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-0">
+        <main className="min-h-dvh w-full flex items-center justify-center p-0">
             <div className="w-full max-w-lg mx-auto flex flex-col gap-6 px-2 sm:px-4 py-8">
                 <header className="rounded-2xl glass-card px-5 py-6 shadow-lg animate-fade-in">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
                         Live Communication Platform
                     </h1>
-                    <p className="text-slate-700 dark:text-white/80 text-base sm:text-lg">
+                    <p className="text-slate-700 dark:text-white/85 text-base sm:text-lg">
                         Modern 1:1 video calls with a beautiful, secure UI.
                     </p>
                 </header>

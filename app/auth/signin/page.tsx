@@ -58,9 +58,8 @@ export default function SignInPage() {
     };
 
     return (
-        <main className="min-h-dvh flex items-center justify-center p-4 relative">
-            <div className="lcp-bg" />
-            <div className="w-full max-w-md rounded-3xl glass-card p-6 md:p-8 text-white">
+        <main className="min-h-dvh flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-3xl glass-card p-6 md:p-8 text-slate-900 dark:text-white">
                 <div className="mb-6">
                     <h1 className="text-3xl font-semibold tracking-tight">
                         {mode === "signin" ? "Welcome back" : "Create account"}

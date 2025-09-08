@@ -12,12 +12,14 @@ export default function VideoChat({
     externalRoom,
     autoJoin,
     onLeave,
+    onRemoteConnected,
 }: {
     selfName: string;
     externalRoom?: string | null;
     /** change this value (e.g. timestamp) to force auto-join re-attempt */
     autoJoin?: unknown;
     onLeave?: () => void;
+    onRemoteConnected?: () => void;
 }) {
     const [room, setRoom] = useState("room-1");
     const [joined, setJoined] = useState(false);
@@ -172,6 +174,7 @@ export default function VideoChat({
                 remoteVideoRef.current.srcObject = e.streams[0];
             }
             setRemoteStatus("connected");
+            onRemoteConnected?.();
         };
 
         // Get mic+camera (always acquire both, then toggle via enabled flags)

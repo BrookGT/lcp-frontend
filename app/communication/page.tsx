@@ -25,8 +25,23 @@ export default function CommunicationPage() {
     const [activeRoom, setActiveRoom] = useState<string | null>(null);
     const [showContactsMobile, setShowContactsMobile] = useState(false);
     const [autoJoinTick, setAutoJoinTick] = useState<number>(0);
+    const [remoteConnected, setRemoteConnected] = useState(false);
     // For future auto-join functionality we could track a target room
     // const [pendingRoom, setPendingRoom] = useState<string | null>(null);
+
+    // Scope image background only on this page
+    useEffect(() => {
+        document.body.classList.add("meeting-bg");
+        return () => {
+            document.body.classList.remove("meeting-bg");
+        };
+    }, []);
+
+    // Set meeting background body class when on this page
+    useEffect(() => {
+        document.body.classList.add("meeting-bg");
+        return () => document.body.classList.remove("meeting-bg");
+    }, []);
 
     // Fetch contacts
     useEffect(() => {
@@ -199,18 +214,20 @@ export default function CommunicationPage() {
                                 });
                             }
                             setActiveRoom(null);
+                            setRemoteConnected(false);
                         }}
+                        onRemoteConnected={() => setRemoteConnected(true)}
                     />
                 </div>
-                {/* Desktop / tablet contact list */}
-                {!activeRoom && (
+                {/* Desktop / tablet contact list: show until remote connects */}
+                {!activeRoom && !remoteConnected && (
                     <div className="hidden md:block shrink-0 h-full">
                         <ContactList contacts={contacts} onCall={startCall} />
                     </div>
                 )}
             </div>
             {/* Mobile overlay contact list */}
-            {showContactsMobile && !activeRoom && (
+            {showContactsMobile && !activeRoom && !remoteConnected && (
                 <ContactList
                     contacts={contacts}
                     onCall={(id) => {

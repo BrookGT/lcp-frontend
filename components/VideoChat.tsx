@@ -302,7 +302,7 @@ export default function VideoChat({
                             placeholder="Room name"
                         />
                         <button
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md font-medium"
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white px-4 py-2 rounded-md font-semibold"
                             onClick={handleJoinRoom}
                         >
                             Join
@@ -540,7 +540,7 @@ export default function VideoChat({
                                 <button
                                     type="submit"
                                     disabled={!chatInput.trim()}
-                                    className="px-3 py-2 rounded-md bg-teal-500 disabled:opacity-40 hover:bg-teal-400 text-white text-xs font-medium shadow"
+                                    className="px-3 py-2 rounded-md bg-gradient-to-r from-green-500 to-emerald-600 disabled:opacity-40 hover:from-green-400 hover:to-emerald-500 text-white text-xs font-semibold shadow"
                                 >
                                     Send
                                 </button>
@@ -609,7 +609,7 @@ export default function VideoChat({
                                 <button
                                     type="submit"
                                     disabled={!chatInput.trim()}
-                                    className="px-5 py-3 rounded-full bg-teal-500 disabled:opacity-40 hover:bg-teal-400 text-white text-sm font-medium shadow"
+                                    className="px-5 py-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 disabled:opacity-40 hover:from-green-400 hover:to-emerald-500 text-white text-sm font-semibold shadow"
                                 >
                                     Send
                                 </button>

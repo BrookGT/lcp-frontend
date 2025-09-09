@@ -58,8 +58,8 @@ export default function SignInPage() {
     };
 
     return (
-        <main className="min-h-dvh flex items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-3xl glass-card p-6 md:p-8 text-slate-900 dark:text-white">
+        <main className="min-h-dvh w-full flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6">
+            <div className="w-full max-w-md rounded-3xl glass-card p-6 md:p-8 text-white">
                 <div className="mb-6">
                     <h1 className="text-3xl font-semibold tracking-tight">
                         {mode === "signin" ? "Welcome back" : "Create account"}
@@ -110,7 +110,7 @@ export default function SignInPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed py-3 font-medium glow-btn flex items-center justify-center gap-2"
+                        className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed py-3 font-semibold glow-btn flex items-center justify-center gap-2"
                     >
                         {loading && (
                             <span className="inline-block size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -124,12 +124,12 @@ export default function SignInPage() {
                             : "Create account"}
                     </button>
                 </form>
-                <div className="mt-5 text-sm text-white/80">
+                <div className="mt-5 text-sm text-white/90">
                     {mode === "signin" ? (
                         <span>
                             No account?{" "}
                             <button
-                                className="underline"
+                                className="underline hover:text-white"
                                 onClick={() => setMode("signup")}
                             >
                                 Sign up
@@ -139,7 +139,7 @@ export default function SignInPage() {
                         <span>
                             Have an account?{" "}
                             <button
-                                className="underline"
+                                className="underline hover:text-white"
                                 onClick={() => setMode("signin")}
                             >
                                 Sign in
@@ -147,7 +147,7 @@ export default function SignInPage() {
                         </span>
                     )}
                 </div>
-                <div className="mt-2 text-xs text-white/60">
+                <div className="mt-2 text-xs text-white/75">
                     <Link href="/">Back to home</Link>
                 </div>
             </div>

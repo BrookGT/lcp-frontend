@@ -32,7 +32,7 @@ export default function ProfilePanel({
                     </span>
                 </div>
                 <button
-                    className="w-full rounded-xl bg-teal-500 hover:bg-teal-400 py-3 font-medium glow-btn"
+                    className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 py-3 font-semibold glow-btn text-white"
                     onClick={() => signOut({ callbackUrl: "/" })}
                 >
                     Logout

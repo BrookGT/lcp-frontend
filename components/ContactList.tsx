@@ -98,7 +98,7 @@ export default function ContactList({
                                             }}
                                             className={`size-8 rounded-full grid place-items-center transition text-xs font-medium border border-white/20 shadow ${
                                                 canCall
-                                                    ? "bg-teal-500 hover:bg-teal-400 text-white"
+                                                    ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white"
                                                     : "bg-white/10 text-white/40 cursor-not-allowed"
                                             }`}
                                         >

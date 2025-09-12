@@ -44,7 +44,18 @@ export default function VideoChat({
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const remoteLeftRef = useRef(false); // track remote leaving for iceRestart
+    const [unread, setUnread] = useState(0);
+    const lastReadTsRef = useRef<number>(0);
+    const myNameRef = useRef(selfName);
     const [isMobile, setIsMobile] = useState(false);
+    // Media acquisition error state
+    const [mediaError, setMediaError] = useState<string | null>(null);
+    const [cameraUnavailable, setCameraUnavailable] = useState(false);
+    // Chat scroll container refs
+    const desktopChatBodyRef = useRef<HTMLDivElement | null>(null);
+    const mobileChatBodyRef = useRef<HTMLDivElement | null>(null);
+    const messageIdsRef = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         const mq = window.matchMedia("(max-width: 767px)");
@@ -110,18 +121,11 @@ export default function VideoChat({
 
         function handlePeerDisconnected(msg: string) {
             console.log(msg);
-            // Clear only remote media so the host keeps self-view
             try {
                 pcRef.current?.getReceivers().forEach((r) => r.track?.stop());
             } catch {}
-            if (remoteVideoRef.current) {
-                try {
-                    const src = remoteVideoRef.current
-                        .srcObject as MediaStream | null;
-                    src?.getTracks().forEach((t) => t.stop());
-                } catch {}
-                remoteVideoRef.current.srcObject = null;
-            }
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+            remoteLeftRef.current = true; // signal next offer to request ICE restart
             setRemoteStatus("left");
         }
 
@@ -138,13 +142,26 @@ export default function VideoChat({
             cleanupPeer();
             setJoined(false);
             setRemoteStatus("idle");
+            setMessages([]); // clear chat
+            setUnread(0);
+            messageIdsRef.current.clear();
         });
         socket.on("peerDisconnected", handlePeerDisconnected);
         socket.on("name", (n: string) => {
             if (n && typeof n === "string") setPeerName(n);
         });
         socket.on("chat:message", (m: ChatMessage) => {
-            setMessages((prev) => [...prev.slice(-199), m]);
+            // Build a stable key (server may not always send unique id across sessions)
+            const key = m.id || `${m.fromName}|${m.ts}|${m.text}`;
+            if (messageIdsRef.current.has(key)) return; // duplicate; ignore
+            messageIdsRef.current.add(key);
+            setMessages((prev) => {
+                const next = [...prev.slice(-199), m];
+                if (!chatOpen && m.fromName !== selfName) {
+                    setUnread((u) => u + 1);
+                }
+                return next;
+            });
         });
 
         return () => {
@@ -161,6 +178,39 @@ export default function VideoChat({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [socket, selfName]);
 
+    // When chat panel opens, mark messages as read
+    useEffect(() => {
+        if (chatOpen) {
+            lastReadTsRef.current = Date.now();
+            if (unread) setUnread(0);
+            // scroll to bottom after render
+            requestAnimationFrame(() => {
+                try {
+                    const el = document.getElementById("chat-bottom");
+                    el?.scrollIntoView({ behavior: "smooth", block: "end" });
+                } catch {}
+            });
+        }
+    }, [chatOpen, unread]);
+
+    // Auto-scroll on new message if chat open and user near bottom
+    useEffect(() => {
+        if (!chatOpen) return;
+        const container = !isMobile
+            ? desktopChatBodyRef.current
+            : mobileChatBodyRef.current;
+        if (!container) return;
+        const atBottom =
+            container.scrollHeight -
+                container.scrollTop -
+                container.clientHeight <
+            80;
+        if (atBottom) {
+            const el = document.getElementById("chat-bottom");
+            el?.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
+    }, [messages, chatOpen, isMobile]);
+
     async function ensurePC() {
         if (pcRef.current) return pcRef.current;
         const pc = new RTCPeerConnection(ICE_CONFIG);
@@ -176,34 +226,79 @@ export default function VideoChat({
             setRemoteStatus("connected");
             onRemoteConnected?.();
         };
-
-        // Get mic+camera (always acquire both, then toggle via enabled flags)
-        localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: true,
-        });
+        if (!localStreamRef.current) {
+            try {
+                setMediaError(null);
+                setCameraUnavailable(false);
+                localStreamRef.current =
+                    await navigator.mediaDevices.getUserMedia({
+                        audio: true,
+                        video: true,
+                    });
+            } catch (err) {
+                const e = err as DOMException | { name?: string } | undefined;
+                const name = e?.name || "UnknownError";
+                if (name === "NotReadableError" || name === "TrackStartError") {
+                    try {
+                        localStreamRef.current =
+                            await navigator.mediaDevices.getUserMedia({
+                                audio: true,
+                                video: false,
+                            });
+                        setCameraUnavailable(true);
+                        setMediaError(
+                            "Camera is busy or unavailable. Joined with microphone only. Close other apps using the camera and press Retry."
+                        );
+                    } catch (audioErr) {
+                        const ae = audioErr as
+                            | DOMException
+                            | { name?: string }
+                            | undefined;
+                        setMediaError(
+                            `Cannot access media devices: ${
+                                ae?.name || "Unknown"
+                            }`
+                        );
+                        throw audioErr;
+                    }
+                } else if (
+                    name === "NotAllowedError" ||
+                    name === "SecurityError"
+                ) {
+                    setMediaError(
+                        "Permission denied for camera/microphone. Allow access and Retry."
+                    );
+                    throw err;
+                } else {
+                    setMediaError(`Media error: ${name}`);
+                    throw err;
+                }
+            }
+            localStreamRef.current
+                ?.getAudioTracks()
+                .forEach((t) => (t.enabled = micOn));
+            localStreamRef.current
+                ?.getVideoTracks()
+                .forEach((t) => (t.enabled = camOn));
+        }
         localStreamRef.current
-            .getAudioTracks()
-            .forEach((t) => (t.enabled = micOn));
-        localStreamRef.current
-            .getVideoTracks()
-            .forEach((t) => (t.enabled = camOn));
-        localStreamRef.current
-            .getTracks()
+            ?.getTracks()
             .forEach((t) => pc.addTrack(t, localStreamRef.current!));
-        if (localVideoRef.current) {
+        if (localVideoRef.current && localStreamRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current;
         }
-
         pcRef.current = pc;
         return pc;
     }
 
     async function makeOffer() {
         await ensurePC();
-        const offer = await pcRef.current!.createOffer();
+        const offer = await pcRef.current!.createOffer(
+            remoteLeftRef.current ? { iceRestart: true } : undefined
+        );
         await pcRef.current!.setLocalDescription(offer);
         socket.emit("offer", offer);
+        remoteLeftRef.current = false; // reset after using
     }
 
     function cleanupPeer() {
@@ -222,9 +317,11 @@ export default function VideoChat({
 
     async function handleJoinRoom() {
         setJoined(true);
+        setMessages([]); // new session
+        setUnread(0);
+        messageIdsRef.current.clear();
         await ensurePC();
         socket.emit("join", room);
-        // Share our name to remote right after joining
         socket.emit("name", selfName);
         setRemoteStatus("connecting");
     }
@@ -234,6 +331,9 @@ export default function VideoChat({
         socket.emit("leave");
         cleanupPeer();
         onLeave?.();
+        setMessages([]); // reset chat
+        setUnread(0);
+        messageIdsRef.current.clear();
     }
 
     function sendChat() {
@@ -270,11 +370,69 @@ export default function VideoChat({
     function toggleCam() {
         setCamOn((prev) => {
             const next = !prev;
-            localStreamRef.current
-                ?.getVideoTracks()
-                .forEach((t) => (t.enabled = next));
+            const videoTracks = localStreamRef.current?.getVideoTracks() || [];
+            if (videoTracks.length === 0 && next) {
+                // Attempt to add a video track now (user turned camera on after fallback)
+                (async () => {
+                    try {
+                        const camStream =
+                            await navigator.mediaDevices.getUserMedia({
+                                video: true,
+                            });
+                        const track = camStream.getVideoTracks()[0];
+                        if (!pcRef.current) return;
+                        camStream.getTracks().forEach((t) => t.stop()); // we only need the track reference
+                        if (localStreamRef.current) {
+                            localStreamRef.current.addTrack(track);
+                        } else {
+                            localStreamRef.current = new MediaStream([track]);
+                        }
+                        pcRef.current.addTrack(track, localStreamRef.current!);
+                        if (localVideoRef.current) {
+                            localVideoRef.current.srcObject =
+                                localStreamRef.current;
+                        }
+                        setCameraUnavailable(false);
+                        setMediaError(null);
+                    } catch (e) {
+                        console.warn("Failed to enable camera later", e);
+                        setCameraUnavailable(true);
+                        setMediaError(
+                            "Still cannot access camera. Ensure it isn't used by another app."
+                        );
+                        setCamOn(false);
+                    }
+                })();
+            } else {
+                videoTracks.forEach((t) => (t.enabled = next));
+            }
             return next;
         });
+    }
+
+    function retryMedia() {
+        // Rebuild peer connection and attempt full media again
+        (async () => {
+            try {
+                // Remove existing
+                pcRef.current?.getSenders().forEach((s) => {
+                    try {
+                        s.track?.stop();
+                    } catch {}
+                });
+                localStreamRef.current?.getTracks().forEach((t) => t.stop());
+                pcRef.current?.close();
+                pcRef.current = null;
+                localStreamRef.current = null;
+                await ensurePC();
+                // If already connected, renegotiate
+                if (remoteStatus === "connected") {
+                    makeOffer();
+                }
+            } catch (e) {
+                console.error("Retry media failed", e);
+            }
+        })();
     }
 
     // Auto join when externalRoom provided
@@ -357,6 +515,31 @@ export default function VideoChat({
                             {!camOn && (
                                 <div className="absolute inset-0 grid place-items-center bg-black/70 text-white text-sm">
                                     Camera off
+                                </div>
+                            )}
+                            {mediaError && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 p-4 text-center text-white text-xs">
+                                    <p className="max-w-[220px] leading-snug opacity-90">
+                                        {mediaError}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        {cameraUnavailable && (
+                                            <button
+                                                type="button"
+                                                onClick={retryMedia}
+                                                className="px-3 py-1.5 rounded-md bg-teal-500 hover:bg-teal-400 text-white font-medium"
+                                            >
+                                                Retry
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setMediaError(null)}
+                                            className="px-3 py-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white font-medium"
+                                        >
+                                            Dismiss
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -458,7 +641,7 @@ export default function VideoChat({
                                 onClick={() => setChatOpen((p) => !p)}
                                 title="Toggle chat"
                                 aria-label="Toggle chat"
-                                className={`size-10 sm:size-12 rounded-full grid place-items-center shadow-md transition ring-1 bg-white text-black ring-black/10 hover:bg-white ${
+                                className={`relative size-10 sm:size-12 rounded-full grid place-items-center shadow-md transition ring-1 bg-white text-black ring-black/10 hover:bg-white ${
                                     chatOpen ? "outline outline-teal-400" : ""
                                 }`}
                             >
@@ -471,6 +654,11 @@ export default function VideoChat({
                                 >
                                     <path d="M4 4h16v12H7.17L4 19.17V4Zm2 2v8.83L7.83 13H18V6H6Zm3 3h2v2H9V9Zm6 0h-4v2h4V9Z" />
                                 </svg>
+                                {!chatOpen && unread > 0 && (
+                                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold flex items-center justify-center shadow ring-2 ring-white">
+                                        {unread > 99 ? "99+" : unread}
+                                    </span>
+                                )}
                             </button>
                         </div>
 
@@ -492,34 +680,53 @@ export default function VideoChat({
                                     Close
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-3 space-y-3 text-sm">
+                            <div
+                                ref={desktopChatBodyRef}
+                                className="flex-1 overflow-y-auto p-3 space-y-3 text-sm"
+                            >
                                 {messages.length === 0 && (
                                     <div className="text-white/40 text-xs">
                                         No messages yet
                                     </div>
                                 )}
-                                {messages.map((m) => (
-                                    <div
-                                        key={m.id}
-                                        className="flex flex-col gap-0.5"
-                                    >
-                                        <div className="text-[11px] uppercase tracking-wide text-white/40">
-                                            {m.fromName}{" "}
-                                            <span className="text-white/30">
-                                                •{" "}
-                                                {new Date(
-                                                    m.ts
-                                                ).toLocaleTimeString([], {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </span>
+                                {messages.map((m) => {
+                                    const mine = m.fromName === selfName;
+                                    return (
+                                        <div
+                                            key={m.id}
+                                            className={`flex flex-col gap-1 ${
+                                                mine
+                                                    ? "items-end"
+                                                    : "items-start"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                {!mine && (
+                                                    <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">
+                                                        {m.fromName}
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] text-white/30">
+                                                    {new Date(
+                                                        m.ts
+                                                    ).toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className={`px-3 py-2 rounded-2xl text-[13px] leading-snug whitespace-pre-wrap break-words shadow-md max-w-[85%] ${
+                                                    mine
+                                                        ? "bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-br-sm"
+                                                        : "bg-white/15 text-white/90 backdrop-blur-sm border border-white/10 rounded-bl-sm"
+                                                }`}
+                                            >
+                                                {m.text}
+                                            </div>
                                         </div>
-                                        <div className="text-white/90 leading-snug break-words">
-                                            {m.text}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <div id="chat-bottom" />
                             </div>
                             <form
@@ -561,34 +768,53 @@ export default function VideoChat({
                                     ×
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+                            <div
+                                ref={mobileChatBodyRef}
+                                className="flex-1 overflow-y-auto p-4 space-y-4 text-sm"
+                            >
                                 {messages.length === 0 && (
                                     <div className="text-white/40 text-xs text-center pt-4">
                                         No messages yet
                                     </div>
                                 )}
-                                {messages.map((m) => (
-                                    <div
-                                        key={m.id}
-                                        className="flex flex-col gap-0.5"
-                                    >
-                                        <div className="text-[11px] font-semibold tracking-wide text-white/50">
-                                            {m.fromName}{" "}
-                                            <span className="text-white/30 font-normal">
-                                                •{" "}
-                                                {new Date(
-                                                    m.ts
-                                                ).toLocaleTimeString([], {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </span>
+                                {messages.map((m) => {
+                                    const mine = m.fromName === selfName;
+                                    return (
+                                        <div
+                                            key={m.id}
+                                            className={`flex flex-col gap-1 ${
+                                                mine
+                                                    ? "items-end"
+                                                    : "items-start"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                {!mine && (
+                                                    <span className="text-[11px] font-semibold text-white/50">
+                                                        {m.fromName}
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] text-white/40">
+                                                    {new Date(
+                                                        m.ts
+                                                    ).toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <div
+                                                className={`px-4 py-2 rounded-2xl text-sm leading-snug whitespace-pre-wrap break-words shadow-md max-w-[85%] ${
+                                                    mine
+                                                        ? "bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-br-sm"
+                                                        : "bg-white/15 text-white/90 backdrop-blur-sm border border-white/10 rounded-bl-sm"
+                                                }`}
+                                            >
+                                                {m.text}
+                                            </div>
                                         </div>
-                                        <div className="text-white/90 leading-snug break-words whitespace-pre-wrap">
-                                            {m.text}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <div id="chat-bottom" />
                             </div>
                             <form

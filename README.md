@@ -82,6 +82,19 @@ Render / Railway / Docker:
 -   Credentials login hits backend endpoints `/auth/login` & `/auth/register`.
 -   JWT returned is stored in NextAuth JWT token (not in cookies for API fetches yet) – extend if you add refresh tokens.
 -   Socket.IO client connects using same host as API unless overridden.
+-   Contacts + presence fetched via `/users/contacts` (auth required) then live‑updated by socket `presence` events.
+-   Invitation / Call Signaling Events (Socket.IO):
+    -   `presence:update` (client -> server) announce status: `ONLINE|BUSY|OFFLINE`.
+    -   `call:invite` (A -> server -> B) payload: `{ fromUserId, fromName, toUserId, roomId }`.
+    -   `call:incoming` (server -> callee) same payload as invite.
+    -   `call:accept` (callee -> server -> caller) `{ roomId, fromUserId, toUserId }`.
+    -   `call:accepted` (server -> caller) `{ roomId, toUserId }` triggers auto join.
+    -   `call:reject` / `call:rejected` mirror accept flow for denial.
+    -   `call:unavailable` emitted if callee is not in `ONLINE` state (race protection).
+    -   `call:end` (either side) `{ userIds: [callerId, calleeId] }` used to revert statuses to `ONLINE`.
+-   Room naming convention: `r-{callerId}-{calleeId}-{timestamp}` (immutable) – do not parse for auth logic, only convenience.
+-   `useContacts` hook centralizes: fetching contacts, presence subscription, invite lifecycle, active room management, optimistic status transitions.
+-   `InvitationModal` renders incoming invitation UI with accessible focus trapping (basic) and Accept / Reject actions.
 
 ---
 
@@ -98,6 +111,11 @@ Render / Railway / Docker:
 -   Refresh token rotation & automatic re-auth.
 -   Presence indicators directly from socket events (currently basic).
 -   Recording and storing call histories UI.
+-   Group calls (multi‑party) – extend signaling to broadcast SDP candidates to multiple peers.
+-   Push notifications for invites when user is offline.
+-   Better busy logic (auto BUSY when in active room, resume previous state on end).
+-   Persist unread chat counts per contact.
+-   Network quality indicators (RTCPeerConnection stats overlay).
 
 ---
 
